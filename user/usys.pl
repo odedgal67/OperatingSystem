@@ -39,3 +39,4 @@ entry("uptime");
 entry("pause_system");
 entry("kill_system");
 entry("debug");
+entry("print_stats");

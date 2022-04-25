@@ -30,6 +30,9 @@ struct cpu {
 
 extern struct cpu cpus[NCPU];
 
+void updateAllProcsStats(void);
+int get_utilization(void);
+
 // per-process data for the trap handling code in trampoline.S.
 // sits in a page by itself just under the trampoline page in the
 // user page table. not specially mapped in the kernel page table.
@@ -110,4 +113,7 @@ struct proc {
   uint mean_ticks;
   uint last_ticks;
   uint last_runnable_time;
+  uint total_running_time;
+  uint total_runnable_time;
+  uint total_sleeping_time;
 };

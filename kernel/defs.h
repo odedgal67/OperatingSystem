@@ -141,6 +141,7 @@ void            syscall();
 int             pause_system(int);
 int             kill_system(void);
 void            debug(void);
+void            print_stats(void);
 
 // trap.c
 extern uint     ticks;

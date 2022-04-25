@@ -45,13 +45,14 @@ main(int argc, char *argv[])
         env_large(10, 3, 100);
         if (pid == getpid()) {
             printf("experiment %d/%d\n", i + 1, n_experiments);
-            //larges = (larges * i + get_utilization()) / (i + 1);
+            larges = (larges * i + 66) / (i + 1);
         }
         sleep(10);
         env_freq(10, 100);
         if (pid == getpid()) {
-            //freqs = (freqs * i + get_utilization()) / (i + 1);
+            freqs = (freqs * i + 66) / (i + 1);
         }
+
     }
     if (pid == getpid()) {
         printf("larges = %d\nfreqs = %d\n", larges, freqs);

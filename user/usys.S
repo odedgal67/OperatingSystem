@@ -120,3 +120,8 @@ debug:
  li a7, SYS_debug
  ecall
  ret
+.global print_stats
+print_stats:
+ li a7, SYS_print_stats
+ ecall
+ ret

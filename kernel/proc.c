@@ -8,7 +8,15 @@
 
 #define SHELL_PID 2
 
-uint rate = 5;
+int sleeping_processes_mean = 0;
+int running_processes_mean = 0;
+int runnable_time_mean = 0;
+int program_time = 0;
+int num_exit_procceses = 0;
+int start_time = 0;
+int cpu_utilization = 0;
+
+int rate = 5;
 uint unpauseTicks = 0;
 struct cpu cpus[NCPU];
 
@@ -29,6 +37,29 @@ extern char trampoline[]; // trampoline.S
 // memory model when using p->parent.
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
+
+void
+updateAllProcsStats(void)
+{
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if(p->state==RUNNING)
+    {
+      p->total_running_time++;
+    }
+    else if(p->state == RUNNABLE)
+    {
+      p->total_runnable_time++;
+    }
+    else if(p->state == SLEEPING)
+    {
+      p->total_sleeping_time++;
+    }
+    release(&p->lock);
+  }
+}
 
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
@@ -51,7 +82,7 @@ void
 procinit(void)
 {
   struct proc *p;
-  
+  start_time = ticks;
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
@@ -343,6 +374,24 @@ reparent(struct proc *p)
   }
 }
 
+
+void
+updateGlobalStats(struct proc *p)
+{
+  if(p!= 0)
+  {
+    running_processes_mean = (((running_processes_mean * (num_exit_procceses)) + p->total_running_time) / (num_exit_procceses + 1));
+    sleeping_processes_mean = (((sleeping_processes_mean * (num_exit_procceses)) + p->total_sleeping_time) / (num_exit_procceses + 1));
+    runnable_time_mean = (((runnable_time_mean * (num_exit_procceses)) + p->total_runnable_time) / (num_exit_procceses + 1));
+
+    if(p->pid != SHELL_PID && p->pid != initproc->pid) // Only update if not shell or init process
+    {
+      program_time = program_time + p->total_running_time;
+      cpu_utilization = 100*program_time / (ticks - start_time);
+    }
+  }
+}
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait().
@@ -350,6 +399,9 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
+
+  updateGlobalStats(p);
+  num_exit_procceses++;
 
   if(p == initproc)
     panic("init exiting");
@@ -382,11 +434,12 @@ exit(int status)
   p->state = ZOMBIE;
 
   release(&wait_lock);
-
+  
   // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");
 }
+
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
@@ -466,7 +519,7 @@ scheduler(void)
     else
     {
       struct proc *minProc = &proc[0];
-      uint minMeanTicks = 999999;
+      uint minMeanTicks = -1;
 
       for(p = proc; p < &proc[NPROC]; p++)
       {
@@ -539,7 +592,7 @@ scheduler(void)
     else
     {
       struct proc *minProc = &proc[0];
-      uint minLastRunnable = 999999;
+      uint minLastRunnable = -1;
 
       for(p = proc; p < &proc[NPROC]; p++)
       {
@@ -863,5 +916,24 @@ debug(void)
   }
 
 }
+
+void
+print_stats(void)
+{
+  printf("%s : %d\n", "Mean Sleeping", sleeping_processes_mean);
+  printf("%s : %d\n", "Mean Running", running_processes_mean);
+  printf("%s : %d\n", "Mean Runnable", runnable_time_mean);
+  printf("%s : %d\n", "Program TIme", program_time);
+  printf("%s : %d\n", "Cpu Utilization", cpu_utilization);
+}
+
+int get_utilization(void)
+{
+  return cpu_utilization;
+}
+
+
+
+
   
 
